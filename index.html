@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Daily Positive Quotes</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      background: radial-gradient(circle at top, #1e3a5f, #0f172a 55%);
+    }
+
+    .card {
+      width: min(100%, 560px);
+      padding: 2.5rem;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      background: #1e293b;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 1.75rem;
+      color: #f8fafc;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    blockquote {
+      margin: 0 0 1.25rem;
+      color: #38bdf8;
+      font-size: clamp(1.25rem, 4vw, 1.55rem);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    cite {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      font-style: normal;
+    }
+
+    .error {
+      color: #fda4af;
+    }
+
+    #quote-refresh {
+      margin: 1.5rem 0 0;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <h1>Today's positive quote</h1>
+    <blockquote id="quote-text">Loading today's quote...</blockquote>
+    <cite id="quote-author"></cite>
+    <p id="quote-refresh" aria-live="polite"></p>
+  </main>
+
+  <script>
+    async function loadQuote() {
+      const quoteText = document.getElementById("quote-text");
+      const quoteAuthor = document.getElementById("quote-author");
+      const quoteRefresh = document.getElementById("quote-refresh");
+
+      try {
+        const response = await fetch("/api/quote", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Quote API request failed: ${response.status}`);
+        }
+
+        const todayQuote = await response.json();
+        if (!todayQuote || typeof todayQuote.quote !== "string") {
+          throw new Error("Quote API returned invalid data.");
+        }
+
+        quoteText.textContent = `"${todayQuote.quote}"`;
+        quoteAuthor.textContent = todayQuote.author
+          ? `— ${todayQuote.author}`
+          : "";
+        quoteRefresh.textContent = `Changes every 2 hours · Next change at ${new Date(
+          todayQuote.nextRefresh
+        ).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+
+        const refreshAt = new Date(todayQuote.nextRefresh).getTime();
+        const delay = Math.max(refreshAt - Date.now() + 1000, 1000);
+        window.setTimeout(loadQuote, delay);
+      } catch (error) {
+        console.error("Unable to load today's quote.", error);
+        quoteText.textContent = "Make today a great day!";
+        quoteText.classList.add("error");
+        quoteAuthor.textContent = "";
+        quoteRefresh.textContent = "Start server.py to enable two-hour updates.";
+      }
+    }
+
+    loadQuote();
+  </script>
+</body>
+</html>
